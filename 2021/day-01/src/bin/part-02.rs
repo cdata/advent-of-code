@@ -3,21 +3,21 @@ use std::fs;
 use std::iter::Iterator;
 use std::path::Path;
 
-struct ThreeRingBuffer {
+struct RingBuffer<const SIZE: usize> {
     index: usize,
-    buffer: [i32; 3],
+    buffer: [i32; SIZE],
 }
 
-impl ThreeRingBuffer {
+impl<const SIZE: usize> RingBuffer<SIZE> {
     pub fn new() -> Self {
-        ThreeRingBuffer {
+        RingBuffer {
             index: 0,
-            buffer: [0; 3],
+            buffer: [0; SIZE],
         }
     }
 
     pub fn advance(&mut self) {
-        self.index = (self.index + 1) % 3;
+        self.index = (self.index + 1) % SIZE;
     }
 
     pub fn set(&mut self, value: i32) {
@@ -28,8 +28,8 @@ impl ThreeRingBuffer {
         self.buffer[n]
     }
 
-    pub fn iter(&self) -> ThreeRingIterator {
-        ThreeRingIterator {
+    pub fn iter(&self) -> RingIterator<SIZE> {
+        RingIterator {
             step: 0,
             current: self.index,
             buffer: self,
@@ -37,13 +37,13 @@ impl ThreeRingBuffer {
     }
 }
 
-struct ThreeRingIterator<'a> {
+struct RingIterator<'a, const SIZE: usize> {
     step: usize,
     current: usize,
-    buffer: &'a ThreeRingBuffer,
+    buffer: &'a RingBuffer<SIZE>,
 }
 
-impl<'a> Iterator for ThreeRingIterator<'a> {
+impl<'a, const SIZE: usize> Iterator for RingIterator<'a, SIZE> {
     type Item = i32;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -60,7 +60,7 @@ impl<'a> Iterator for ThreeRingIterator<'a> {
 }
 
 struct ReadingAnalyzer {
-    buffer: ThreeRingBuffer,
+    buffer: RingBuffer<3>,
     last_value: i32,
     increase_count: i32,
     reading_count: i32,
@@ -69,7 +69,7 @@ struct ReadingAnalyzer {
 impl ReadingAnalyzer {
     pub fn new() -> Self {
         ReadingAnalyzer {
-            buffer: ThreeRingBuffer::new(),
+            buffer: RingBuffer::<3>::new(),
             last_value: -1,
             increase_count: 0,
             reading_count: 0,
