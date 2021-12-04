@@ -9,52 +9,47 @@ impl<const BITS: usize> LifeSupport<BITS> {
     pub fn measure(&self) -> (u32, u32) {
         (self.oxygen.0, self.scrubber.0)
     }
+
+    pub fn reduce(
+        mut readings: Vec<&Diagnostic<BITS>>,
+        test: fn(u32, u32) -> bool,
+    ) -> Diagnostic<BITS> {
+        for i in 0..BITS {
+            let channel_sum = readings.iter().fold(0u32, |l, r| l + r.nth_bit(i));
+            let channel_value = match test(channel_sum, readings.len() as u32) {
+                true => 1,
+                false => 0,
+            };
+
+            readings = readings
+                .into_iter()
+                .filter(|diagnostic| diagnostic.nth_bit(i) == channel_value)
+                .collect();
+
+            if readings.len() == 1 {
+                break;
+            }
+        }
+
+        **readings.get(0).unwrap()
+    }
 }
 
 impl<const BITS: usize> From<DiagnosticStream<'_, BITS>> for LifeSupport<BITS> {
     fn from(diagnostic_stream: DiagnosticStream<BITS>) -> Self {
         let readings: Vec<Diagnostic<BITS>> = diagnostic_stream.collect();
-        let mut oxygen_readings: Vec<&Diagnostic<BITS>> = readings.iter().collect();
-        let mut scrubber_readings: Vec<&Diagnostic<BITS>> = readings.iter().collect();
 
-        for i in 0..BITS {
-            let channel_sum = oxygen_readings.iter().fold(0u32, |l, r| l + r.nth_bit(i));
-            let channel_value = match 2 * channel_sum >= oxygen_readings.len() as u32 {
-                true => 1,
-                false => 0,
-            };
+        let oxygen =
+            LifeSupport::<BITS>::reduce(readings.iter().collect(), |channel_sum, reading_count| {
+                channel_sum * 2 >= reading_count
+            });
 
-            oxygen_readings = oxygen_readings
-                .into_iter()
-                .filter(|diagnostic| diagnostic.nth_bit(i) == channel_value)
-                .collect();
+        let scrubber =
+            LifeSupport::<BITS>::reduce(readings.iter().collect(), |channel_sum, reading_count| {
+                channel_sum * 2 < reading_count
+            });
 
-            if oxygen_readings.len() == 1 {
-                break;
-            }
-        }
-
-        for i in 0..BITS {
-            let channel_sum = scrubber_readings.iter().fold(0u32, |l, r| l + r.nth_bit(i));
-            let channel_value = match 2 * channel_sum < scrubber_readings.len() as u32 {
-                true => 1,
-                false => 0,
-            };
-
-            scrubber_readings = scrubber_readings
-                .into_iter()
-                .filter(|diagnostic| diagnostic.nth_bit(i) == channel_value)
-                .collect();
-
-            if scrubber_readings.len() == 1 {
-                break;
-            }
-        }
-
-        LifeSupport {
-            oxygen: **oxygen_readings.get(0).unwrap(),
-            scrubber: **scrubber_readings.get(0).unwrap(),
-        }
+        LifeSupport { oxygen, scrubber }
     }
 }
 
