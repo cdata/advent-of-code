@@ -1,14 +1,14 @@
 use std::str::Lines;
 
-struct Meter<const BITS: usize> {
+struct PowerMeter<const BITS: usize> {
     reading_count: u32,
     bit_counts: [u32; BITS],
     epsilon_mask: u32,
 }
 
-impl<const BITS: usize> Meter<BITS> {
+impl<const BITS: usize> PowerMeter<BITS> {
     pub fn new() -> Self {
-        Meter {
+        PowerMeter {
             reading_count: 0,
             bit_counts: [0; BITS],
             epsilon_mask: (u32::MAX >> (u32::BITS as usize - BITS)) as u32,
@@ -35,9 +35,9 @@ impl<const BITS: usize> Meter<BITS> {
     }
 }
 
-impl<const BITS: usize> From<DiagnosticStream<'_, BITS>> for Meter<BITS> {
+impl<const BITS: usize> From<DiagnosticStream<'_, BITS>> for PowerMeter<BITS> {
     fn from(diagnostic_stream: DiagnosticStream<BITS>) -> Self {
-        let mut meter = Meter::new();
+        let mut meter = PowerMeter::new();
 
         for diagnostic in diagnostic_stream {
             meter.read(diagnostic);
@@ -81,14 +81,14 @@ impl<'a, const BITS: usize> Iterator for DiagnosticStream<'a, BITS> {
 #[test]
 fn part_01() {
     let input = include_str!("easy.txt");
-    let meter = Meter::from(DiagnosticStream::<5>::new(input));
+    let meter = PowerMeter::from(DiagnosticStream::<5>::new(input));
 
     let (gamma, epsilon) = meter.measure();
 
     assert_eq!(gamma * epsilon, 198);
 
     let input = include_str!("input.txt");
-    let meter = Meter::from(DiagnosticStream::<12>::new(input));
+    let meter = PowerMeter::from(DiagnosticStream::<12>::new(input));
 
     let (gamma, epsilon) = meter.measure();
 
