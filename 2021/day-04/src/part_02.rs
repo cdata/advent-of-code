@@ -81,34 +81,38 @@ impl BingoGame {
                 .collect(),
         }
     }
+}
 
-    pub fn find_winning_score(&mut self) -> u32 {
-        let winner: Option<BingoBoard> = None;
+impl Iterator for BingoGame {
+    type Item = BingoBoard;
+
+    fn next(&mut self) -> Option<Self::Item> {
         let boards = &mut self.boards;
 
-        for number in self.numbers.iter() {
-            for board in boards.iter_mut() {
+        for (number_index, number) in self.numbers.iter().enumerate() {
+            for (board_index, board) in boards.iter_mut().enumerate() {
                 if board.mark(*number) {
-                    return board.score();
+                    self.numbers = Vec::from(self.numbers.split_at(number_index).1);
+                    return Some(boards.remove(board_index));
                 }
             }
         }
 
-        panic!("No winner!");
+        None
     }
 }
 
 #[test]
-fn part_01() {
+fn part_02() {
     let input = include_str!("easy.txt");
     let mut game = BingoGame::new(input);
-    let score = game.find_winning_score();
+    let last_winner = game.last().unwrap();
 
-    assert_eq!(score, 4512);
+    assert_eq!(last_winner.score(), 1924);
 
     let input = include_str!("input.txt");
     let mut game = BingoGame::new(input);
-    let score = game.find_winning_score();
+    let last_winner = game.last().unwrap();
 
-    assert_eq!(score, 39984);
+    assert_eq!(last_winner.score(), 8468);
 }
